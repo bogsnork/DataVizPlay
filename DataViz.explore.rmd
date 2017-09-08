@@ -1,0 +1,205 @@
+---
+title: "Data Viz Exploration"
+output: html_notebook
+---
+
+###Time run
+Time run: `r Sys.time()`
+
+###Global Packages
+```{r}
+#.libPaths("C:/R/R-3.3.1/library")
+library(tidyverse)
+library(knitr)
+```
+
+#Colour Pallettes
+
+###Base Graph
+
+####Load data
+
+```{r}
+load("C:/Christoph/DataVizPlay/data/CrossFell.data.prepd.rda")
+```
+
+####Graph: base
+```{r}
+#box plots by height and year for each taxon
+ggplot(ht.data, aes(x = year, y= height)) +
+  geom_boxplot(aes(colour = taxon)) 
+```
+
+### XKCD pallette
+
+####Packages
+```{r, eval=FALSE}
+#install.packages("xkcd")
+#install.packages("xkcdcolors")
+library(xkcd)
+library(xkcdcolors)
+library(extrafont)
+
+?xkcd
+```
+
+OK, this is a pain in the **** because you need to import fonts (only once though):
+
+```{r, eval=FALSE}
+library(extrafont)
+download.file("http://simonsoftware.se/other/xkcd.ttf",
+              dest="xkcd.ttf", mode="wb")
+system("mkdir ~/.fonts")
+system("cp xkcd.ttf  ~/.fonts")
+font_import(pattern = "xkcd", prompt=FALSE, paths = "C:/Christoph/DataVizPlay/scripts")
+fonts()
+fonttable()
+if(.Platform$OS.type != "unix") {
+  ## Register fonts for Windows bitmap output
+  loadfonts(device="win")
+} else {
+  loadfonts()
+}
+```
+
+
+####Graph: xkcd
+```{r, eval=FALSE}
+#box plots by height and year for each taxon
+ggplot(ht.data, aes(x = year, y= height)) +
+  geom_boxplot(aes(colour = taxon)) +
+  theme_xkcd() 
+  #xkcdaxis(xrange=NULL, yrange=range(ht.data$height)) #this doesn't work because one axis is a factor
+```
+
+
+#Statistics
+
+###Base Graph
+
+####Load data
+
+```{r}
+#load(file="data/CrossFell.data.prepd.rda")
+```
+
+####Graph: base
+```{r}
+#box plots by height and year for each taxon
+ggplot(ht.data, aes(x = year, y= height)) +
+  geom_boxplot() 
+```
+
+##Add p values
+
+http://www.sthda.com/english/articles/24-ggpubr-publication-ready-plots/76-add-p-values-and-significance-levels-to-ggplots/
+
+###Packages
+```{r}
+#install.packages("ggpubr")
+library(ggpubr)
+```
+
+###R functions to compare means
+> **R functions to add p-values**
+
+> Here we present two new R functions in the ggpubr package:
+
+> * compare_means(): easy to use solution to performs one and multiple mean comparisons.
+> * stat_compare_means(): easy to use solution to automatically add p-values and significance levels to a ggplot.
+
+#### compare_means()
+
+As we’ll show in the next sections, it has multiple useful options compared to the standard R functions.
+
+The simplified format is as follow:
+
+
+**The following carries out pairwise tests, nicely formatted, however I didn't get the grouping variable to work** 
+```{r}
+compare_means(formula = height ~ year, data = ht.data, 
+              method = "wilcox.test", paired = FALSE)
+```
+
+* **formula**: a formula of the form x ~ group, where x is a numeric variable and group is a factor with one or multiple levels. For example, formula = TP53 ~ cancer_group. It’s also possible to perform the test for multiple response variables at the same time. For example, formula = c(TP53, PTEN) ~ cancer_group.
+data: a data.frame containing the variables in the formula.
+
+* **method**: the type of test. Default is “wilcox.test”. Allowed values include:
+“t.test” (parametric) and “wilcox.test”" (non-parametric). Perform comparison between two groups of samples. If the grouping variable contains more than two levels, then a pairwise comparison is performed.
+“anova” (parametric) and “kruskal.test” (non-parametric). Perform one-way ANOVA test comparing multiple groups.
+paired: a logical indicating whether you want a paired test. Used only in t.test and in wilcox.test.
+
+* **group.by**: variables used to group the data set before applying the test. When specified the mean comparisons will be performed in each subset of the data formed by the different levels of the group.by variables.
+
+* **ref.group**: a character string specifying the reference group. If specified, for a given grouping variable, each of the group levels will be compared to the reference group (i.e. control group). ref.group can be also “.all.”. In this case, each of the grouping variable levels is compared to all (i.e. base-mean).
+
+
+
+#####stat_compare_means()
+
+This function extends ggplot2 for adding mean comparison p-values to a ggplot, such as box blots, dot plots, bar plots and line plots.
+
+The simplified format is as follow:
+```{r}
+p <- ggplot(ht.data, aes(x = year, y= height)) +
+  geom_boxplot()
+#  Add p-value
+p + stat_compare_means()
+# Change method
+#p + stat_compare_means(method = "t.test")
+
+#add symbol
+p + stat_compare_means(aes(label = ..p.signif..), 
+                        label.x = 1.5, label.y = 40)
+```
+
+####Pairwise comparisons
+
+```{r}
+p <- ggplot(filter(ht.data, taxon =="moss"), aes(x = year, y= height)) +
+  geom_boxplot()
+
+# Visualize: Specify the comparisons you want
+my_comparisons <- list( c("2003", "2005"), 
+                        c("2005", "2008"), 
+                        c("2008", "2010"),
+                        c("2010", "2013"), 
+                        c("2003", "2013"))
+
+# Add pairwise comparisons p-value
+p + stat_compare_means(comparisons = my_comparisons, label = "p.signif", hide.ns = TRUE) + 
+  stat_compare_means(label.y = 30)     # Add global p-value
+```
+
+automate the brackets
+
+```{r}
+test.data <- filter(ht.data, taxon=="Vm")
+wilc.pairw <- compare_means(formula = height ~ year, 
+                            data = test.data, 
+                            method = "wilcox.test", paired = FALSE)
+wilc.pairw <- filter(wilc.pairw, p <=0.05)
+wilc.pairw
+```
+
+```{r}
+my_comparisons <- list()
+for (i in 1:nrow(wilc.pairw)) {
+  my_comparisons[[i]] <- c(wilc.pairw$group1[i], wilc.pairw$group2[i])
+  }
+my_comparisons[[length(my_comparisons)+1]] <- 
+  c(paste(test.data$year[1]), 
+    paste(test.data$year[length(test.data$year)]))
+
+```
+
+```{r}
+p <- ggplot(test.data, aes(x = year, y= height)) +
+  geom_boxplot()
+
+# Add pairwise comparisons p-value
+p + stat_compare_means(comparisons = my_comparisons, label = "p.signif", hide.ns = FALSE)
+  
+
+```
+
