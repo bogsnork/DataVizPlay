@@ -11,6 +11,7 @@ Time run: `r Sys.time()`
 #.libPaths("C:/R/R-3.3.1/library")
 library(tidyverse)
 library(knitr)
+library(lintr)
 ```
 
 #Colour Pallettes
@@ -26,8 +27,8 @@ load("C:/Christoph/DataVizPlay/data/CrossFell.data.prepd.rda")
 ####Graph: base
 ```{r}
 #box plots by height and year for each taxon
-ggplot(ht.data, aes(x = year, y= height)) +
-  geom_boxplot(aes(colour = taxon)) 
+ggplot(ht.data, aes(x = year, y = height)) +
+  geom_boxplot(aes(colour = taxon))
 ```
 
 ### XKCD pallette
@@ -48,15 +49,16 @@ OK, this is a pain in the **** because you need to import fonts (only once thoug
 ```{r, eval=FALSE}
 library(extrafont)
 download.file("http://simonsoftware.se/other/xkcd.ttf",
-              dest="xkcd.ttf", mode="wb")
+              dest = "xkcd.ttf", mode = "wb")
 system("mkdir ~/.fonts")
 system("cp xkcd.ttf  ~/.fonts")
-font_import(pattern = "xkcd", prompt=FALSE, paths = "C:/Christoph/DataVizPlay/scripts")
+font_import(pattern = "xkcd", prompt = FALSE, 
+            paths = "C:/Christoph/DataVizPlay/scripts")
 fonts()
 fonttable()
-if(.Platform$OS.type != "unix") {
+if (.Platform$OS.type != "unix") {
   ## Register fonts for Windows bitmap output
-  loadfonts(device="win")
+  loadfonts(device = "win")
 } else {
   loadfonts()
 }
@@ -66,7 +68,7 @@ if(.Platform$OS.type != "unix") {
 ####Graph: xkcd
 ```{r, eval=FALSE}
 #box plots by height and year for each taxon
-ggplot(ht.data, aes(x = year, y= height)) +
+ggplot(ht.data, aes(x = year, y = height)) +
   geom_boxplot(aes(colour = taxon)) +
   theme_xkcd() 
   #xkcdaxis(xrange=NULL, yrange=range(ht.data$height)) #this doesn't work because one axis is a factor
@@ -86,7 +88,7 @@ ggplot(ht.data, aes(x = year, y= height)) +
 ####Graph: base
 ```{r}
 #box plots by height and year for each taxon
-ggplot(ht.data, aes(x = year, y= height)) +
+ggplot(ht.data, aes(x = year, y = height)) +
   geom_boxplot() 
 ```
 
@@ -117,7 +119,7 @@ The simplified format is as follow:
 
 **The following carries out pairwise tests, nicely formatted, however I didn't get the grouping variable to work** 
 ```{r}
-compare_means(formula = height ~ year, data = ht.data, 
+compare_means(formula = height ~ year, data = ht.data,
               method = "wilcox.test", paired = FALSE)
 ```
 
@@ -141,7 +143,7 @@ This function extends ggplot2 for adding mean comparison p-values to a ggplot, s
 
 The simplified format is as follow:
 ```{r}
-p <- ggplot(ht.data, aes(x = year, y= height)) +
+p <- ggplot(ht.data, aes(x = year, y = height)) +
   geom_boxplot()
 #  Add p-value
 p + stat_compare_means()
@@ -156,7 +158,7 @@ p + stat_compare_means(aes(label = ..p.signif..),
 ####Pairwise comparisons
 
 ```{r}
-p <- ggplot(filter(ht.data, taxon =="moss"), aes(x = year, y= height)) +
+p <- ggplot(filter(ht.data, taxon == "moss"), aes(x = year, y = height)) +
   geom_boxplot()
 
 # Visualize: Specify the comparisons you want
@@ -167,18 +169,20 @@ my_comparisons <- list( c("2003", "2005"),
                         c("2003", "2013"))
 
 # Add pairwise comparisons p-value
-p + stat_compare_means(comparisons = my_comparisons, label = "p.signif", hide.ns = TRUE) + 
+p + stat_compare_means(comparisons = my_comparisons, 
+                       label = "p.signif", 
+                       hide.ns = TRUE) + 
   stat_compare_means(label.y = 30)     # Add global p-value
 ```
 
 automate the brackets
 
 ```{r}
-test.data <- filter(ht.data, taxon=="Vm")
+test.data <- filter(ht.data, taxon == "Vm")
 wilc.pairw <- compare_means(formula = height ~ year, 
                             data = test.data, 
                             method = "wilcox.test", paired = FALSE)
-wilc.pairw <- filter(wilc.pairw, p <=0.05)
+wilc.pairw <- filter(wilc.pairw, p <= 0.05)
 wilc.pairw
 ```
 
@@ -187,18 +191,20 @@ my_comparisons <- list()
 for (i in 1:nrow(wilc.pairw)) {
   my_comparisons[[i]] <- c(wilc.pairw$group1[i], wilc.pairw$group2[i])
   }
-my_comparisons[[length(my_comparisons)+1]] <- 
+my_comparisons[[length(my_comparisons) + 1]] <- 
   c(paste(test.data$year[1]), 
     paste(test.data$year[length(test.data$year)]))
 
 ```
 
 ```{r}
-p <- ggplot(test.data, aes(x = year, y= height)) +
+p <- ggplot(test.data, aes(x = year, y = height)) +
   geom_boxplot()
 
 # Add pairwise comparisons p-value
-p + stat_compare_means(comparisons = my_comparisons, label = "p.signif", hide.ns = FALSE)
+p + stat_compare_means(comparisons = my_comparisons, 
+                       label = "p.signif", 
+                       hide.ns = FALSE)
   
 
 ```
